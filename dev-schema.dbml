@@ -1,0 +1,824 @@
+// ECOMMERCE SCHEMA
+
+Enum user_role {
+  customer
+  admin
+  manager
+}
+
+Enum address_type {
+  home
+  work
+  other
+}
+
+Enum product_status {
+  draft
+  published
+  archived
+}
+
+Enum order_status {
+  pending
+  confirmed
+  processing
+  shipped
+  delivered
+  cancelled
+  returned
+}
+
+Enum payment_status {
+  pending
+  paid
+  failed
+  refunded
+  cod_pending
+  cod_confirmed
+}
+
+Enum fulfillment_status {
+  pending
+  processing
+  partially_shipped
+  shipped
+  delivered
+  cancelled
+}
+
+Enum payment_method {
+  upi
+  card
+  wallet
+  netbanking
+  cod
+}
+
+Enum payment_provider {
+  razorpay
+  phonepe
+  stripe
+  cod
+}
+
+Enum discount_type {
+  percentage
+  flat
+}
+
+Enum inventory_log_type {
+  in
+  out
+  return
+  adjustment
+}
+
+Enum return_status {
+  pending
+  approved
+  rejected
+  picked_up
+  received
+  refunded
+  cancelled
+}
+
+Enum shipping_status {
+  pending
+  shipped
+  in_transit
+  out_for_delivery
+  delivered
+  failed
+  returned
+}
+
+Enum notification_type {
+  order_confirmed
+  order_shipped
+  order_delivered
+  payment_received
+  payment_failed
+  payment_refunded
+  return_approved
+  return_rejected
+  welcome
+}
+
+Table users {
+  id uuid [pk]
+
+  name varchar [not null]
+
+  email varchar [unique]
+  phone varchar [unique]
+
+  passwordHash text [not null]
+
+  hashAlgorithm varchar
+  hashOptions jsonb
+
+  status boolean [default: true]
+
+  role user_role [default: 'customer']
+
+  labels jsonb
+
+  emailVerification boolean [default: false]
+  phoneVerification boolean [default: false]
+
+  mfaEnabled boolean [default: false]
+
+  defaultShippingAddressId varchar [ref: > address.id]
+  defaultBillingAddressId varchar [ref: > address.id]
+
+  prefs jsonb
+
+  registrationAt timestamptz
+  passwordUpdatedAt timestamptz
+
+  accessedAt timestamptz
+
+  createdAt timestamptz
+  updatedAt timestamptz
+  deletedAt timestamptz
+}
+
+
+Table sessions {
+  id uuid [pk]
+
+  userId uuid [not null, ref: > users.id]
+
+  provider varchar [not null]
+  providerUid varchar
+
+  providerAccessToken text
+  providerAccessTokenExpiry timestamptz
+
+  providerRefreshToken text
+
+  secret text
+
+  ip inet
+
+  osCode varchar
+  osName varchar
+  osVersion varchar
+
+  clientType varchar
+  clientCode varchar
+  clientName varchar
+  clientVersion varchar
+
+  clientEngine varchar
+  clientEngineVersion varchar
+
+  deviceName varchar
+  deviceBrand varchar
+  deviceModel varchar
+
+  countryCode varchar(2)
+  countryName varchar
+
+  current boolean [default: false]
+
+  factors jsonb
+
+  expireAt timestamptz
+  mfaUpdatedAt timestamptz
+
+  createdAt timestamptz
+  updatedAt timestamptz
+
+  revokedAt timestamptz
+}
+
+Table address {
+  id varchar [pk]
+  userId uuid [not null, ref: > users.id]
+  fullName varchar [not null]
+  phone varchar
+  addressLine1 varchar [not null]
+  addressLine2 varchar
+  landmark varchar
+  city varchar [not null]
+  state varchar
+  postalCode varchar [not null]
+  countryCode varchar [not null]
+  latitude decimal
+  longitude decimal
+  addressType address_type
+  isDefault boolean [default: false]
+  createdAt timestamp
+  updatedAt timestamp
+  deletedAt timestamp
+}
+
+Table shopBranch {
+  id varchar [pk]
+  name varchar
+  createdAt timestamp
+  updatedAt timestamp
+  deletedAt timestamp
+}
+
+Table category {
+  id varchar [pk]
+  name varchar
+  slug varchar [unique]
+  description text
+  imageUrl varchar
+  isActive boolean [default: true]
+  sortOrder int [default: 0]
+
+  createdAt timestamp
+  updatedAt timestamp
+  deletedAt timestamp
+}
+
+Table subCategory {
+  id varchar [pk]
+
+  categoryId varchar [ref: > category.id]
+
+  name varchar
+  slug varchar [unique]
+  description text
+  imageUrl varchar
+  isActive boolean [default: true]
+  sortOrder int [default: 0]
+
+  createdAt timestamp
+  updatedAt timestamp
+  deletedAt timestamp
+}
+
+Table product {
+  id varchar [pk]
+
+  categoryId varchar [ref: > category.id]
+  subCategoryId varchar [ref: > subCategory.id]
+
+  shopBranchId varchar [ref: > shopBranch.id]
+
+  name varchar
+  slug varchar [unique]
+  shortDescription text
+  description text
+
+  sku varchar [unique]
+  barcode varchar
+
+  price decimal
+  salePrice decimal
+  costPrice decimal
+
+  stock int [default: 0]
+  minStock int [default: 0]
+
+  weight decimal
+  width decimal
+  height decimal
+  length decimal
+
+  brand varchar
+  tags text
+
+  status product_status
+  isActive boolean [default: true]
+  isFeatured boolean [default: false]
+
+  rating decimal
+  totalReviews int [default: 0]
+  totalSales int [default: 0]
+
+  hsnCode varchar(8)
+  gstRate decimal
+  countryOfOrigin varchar(2)
+
+  seoTitle varchar
+  seoDescription text
+
+  createdAt timestamp
+  updatedAt timestamp
+  deletedAt timestamp
+}
+
+Table productImages {
+  id varchar [pk]
+
+  productId varchar [ref: > product.id]
+
+  name varchar
+  altText varchar
+
+  url varchar
+
+  bucketId varchar
+  fileId varchar
+
+  mimeType varchar
+  extension varchar
+
+  size int
+
+  width int
+  height int
+
+  isPrimary boolean [default: false]
+  sortOrder int [default: 0]
+
+  createdAt timestamp
+  updatedAt timestamp
+  deletedAt timestamp
+}
+
+Table productVariants {
+  id varchar [pk]
+
+  productId varchar [ref: > product.id]
+
+  name varchar
+  sku varchar [unique]
+
+  price decimal
+  salePrice decimal
+
+  stock int
+
+  color varchar
+  size varchar
+
+  weight decimal
+
+  isDefault boolean [default: false]
+  isActive boolean [default: true]
+
+  createdAt timestamp
+  updatedAt timestamp
+  deletedAt timestamp
+}
+
+Table productAttributes {
+  id varchar [pk]
+
+  productId varchar [ref: > product.id]
+
+  name varchar
+  value varchar
+
+  createdAt timestamp
+  updatedAt timestamp
+}
+
+Table productSeo {
+  id varchar [pk]
+
+  productId varchar [ref: > product.id]
+
+  metaTitle varchar
+  metaDescription text
+  keywords text
+
+  createdAt timestamp
+  updatedAt timestamp
+}
+
+Table wishlist {
+  id varchar [pk]
+
+  userId uuid [ref: > users.id]
+  productId varchar [ref: > product.id]
+  productVariantId varchar [ref: > productVariants.id]
+
+  addedAt timestamp
+
+  createdAt timestamp
+  updatedAt timestamp
+}
+
+
+// CART
+
+Table cart {
+  id varchar [pk]
+
+  userId uuid [not null, ref: > users.id]
+
+  couponId varchar [ref: > coupons.id]
+
+  totalItems int [default: 0]
+
+  subTotal decimal [default: 0]
+  discountAmount decimal [default: 0]
+  taxAmount decimal [default: 0]
+  shippingAmount decimal [default: 0]
+
+  grandTotal decimal [default: 0]
+
+  expiresAt timestamp
+
+  createdAt timestamp
+  updatedAt timestamp
+}
+
+Table cartItems {
+  id varchar [pk]
+
+  cartId varchar [not null, ref: > cart.id]
+
+  productId varchar [not null, ref: > product.id]
+  productVariantId varchar [ref: > productVariants.id]
+
+  quantity int [default: 1]
+
+  price decimal
+  salePrice decimal
+
+  totalPrice decimal
+
+  createdAt timestamp
+  updatedAt timestamp
+}
+
+
+// ORDERS
+
+Table orders {
+  id varchar [pk]
+
+  orderNumber varchar [unique]
+
+  userId uuid [not null, ref: > users.id]
+
+  addressId varchar [ref: > address.id]
+
+  shippingAddressId varchar [ref: > address.id]
+  billingAddressId varchar [ref: > address.id]
+
+  couponId varchar [ref: > coupons.id]
+
+  paymentId uuid [ref: > payments.id]
+
+  status order_status
+  paymentStatus payment_status
+  fulfillmentStatus fulfillment_status
+
+  currency varchar [default: 'INR']
+
+  subTotal decimal [default: 0]
+  discountAmount decimal [default: 0]
+  taxAmount decimal [default: 0]
+  shippingAmount decimal [default: 0]
+
+  grandTotal decimal [default: 0]
+
+  notes text
+
+  cancelReason text
+
+  gstin varchar(15)
+  placeOfSupply varchar(2)
+
+  placedAt timestamp
+  deliveredAt timestamp
+  cancelledAt timestamp
+
+  createdAt timestamp
+  updatedAt timestamp
+  deletedAt timestamp
+}
+
+Table orderItems {
+  id varchar [pk]
+
+  orderId varchar [not null, ref: > orders.id]
+
+  productId varchar [not null, ref: > product.id]
+  productVariantId varchar [ref: > productVariants.id]
+
+  productName varchar
+  variantName varchar
+
+  sku varchar
+
+  quantity int [default: 1]
+
+  unitPrice decimal
+  salePrice decimal
+
+  totalPrice decimal
+
+  hsnCode varchar(8)
+  gstRate decimal
+  taxableValue decimal
+
+  createdAt timestamp
+  updatedAt timestamp
+}
+
+
+// PAYMENTS
+
+Table payments {
+  id uuid [pk]
+
+  orderId varchar [not null, ref: > orders.id]
+
+  userId uuid [not null, ref: > users.id]
+
+  provider payment_provider
+
+  providerOrderId varchar
+  providerPaymentId varchar
+  providerSignature varchar
+
+  amount decimal
+  currency varchar [default: 'INR']
+
+  status payment_status
+
+  paymentMethod payment_method
+
+  isCOD boolean [default: false]
+
+  codCharges decimal [default: 0]
+
+  codConfirmed boolean [default: false]
+
+  codConfirmedAt timestamp
+
+  transactionReference varchar
+
+  paidAt timestamp
+  failedAt timestamp
+  refundedAt timestamp
+
+  failureReason text
+
+  metadata jsonb
+
+  createdAt timestamp
+  updatedAt timestamp
+}
+
+// SHIPPING
+
+Table shipment {
+  id varchar [pk]
+
+  orderId varchar [not null, ref: > orders.id]
+
+  addressId varchar [ref: > address.id]
+
+  courierName varchar
+  trackingNumber varchar
+  trackingUrl varchar
+
+  shippedAt timestamp
+  outForDeliveryAt timestamp
+  deliveredAt timestamp
+  returnedAt timestamp
+
+  shippingStatus shipping_status
+  estimatedDeliveryDate timestamp
+
+  createdAt timestamp
+  updatedAt timestamp
+}
+
+
+// COUPONS
+
+Table coupons {
+  id varchar [pk]
+
+  code varchar [unique]
+
+  title varchar
+  description text
+
+  discountType discount_type
+
+  discountValue decimal
+
+  minimumOrderAmount decimal
+
+  maximumDiscountAmount decimal
+
+  usageLimit int
+  usedCount int [default: 0]
+
+  userUsageLimit int [default: 1]
+
+  minimumQuantity int
+  isStackable boolean [default: false]
+
+  startsAt timestamp
+  expiresAt timestamp
+
+  isActive boolean [default: true]
+
+  createdAt timestamp
+  updatedAt timestamp
+}
+
+
+// REVIEWS
+
+Table reviews {
+  id varchar [pk]
+
+  userId uuid [not null, ref: > users.id]
+
+  productId varchar [not null, ref: > product.id]
+
+  orderId varchar [ref: > orders.id]
+
+  rating int
+
+  title varchar
+  comment text
+
+  images jsonb
+
+  isVerifiedPurchase boolean [default: false]
+  isApproved boolean [default: false]
+  helpfulCount int [default: 0]
+
+  createdAt timestamp
+  updatedAt timestamp
+  deletedAt timestamp
+}
+
+
+// INVENTORY LOGS
+
+Table inventoryLogs {
+  id varchar [pk]
+
+  productId varchar [not null, ref: > product.id]
+
+  productVariantId varchar [ref: > productVariants.id]
+
+  type inventory_log_type
+
+  quantity int
+
+  previousStock int
+  currentStock int
+
+  reason text
+
+  createdBy varchar
+
+  createdAt timestamp
+}
+
+
+// PRODUCT TAGS
+
+Table productTags {
+  id varchar [pk]
+
+  name varchar [unique]
+
+  slug varchar [unique]
+
+  createdAt timestamp
+  updatedAt timestamp
+}
+
+Table productTagMappings {
+  id varchar [pk]
+
+  productId varchar [not null, ref: > product.id]
+
+  productTagId varchar [not null, ref: > productTags.id]
+
+  createdAt timestamp
+}
+
+
+// NOTIFICATIONS
+
+Table notifications {
+  id varchar [pk]
+
+  userId uuid [ref: > users.id]
+
+  title varchar
+  message text
+
+  type notification_type
+  actionUrl varchar
+
+  isRead boolean [default: false]
+
+  createdAt timestamp
+}
+
+
+// RETURN REQUESTS
+
+Table returns {
+  id varchar [pk]
+
+  orderId varchar [not null, ref: > orders.id]
+
+  userId uuid [not null, ref: > users.id]
+
+  reason text
+
+  status return_status
+
+  refundAmount decimal
+
+  requestedAt timestamp
+  approvedAt timestamp
+  rejectedAt timestamp
+  completedAt timestamp
+
+  createdAt timestamp
+  updatedAt timestamp
+}
+
+Table returnItems {
+  id varchar [pk]
+
+  returnId varchar [not null, ref: > returns.id]
+  orderItemId varchar [not null, ref: > orderItems.id]
+
+  quantity int [not null]
+  reason text
+  condition varchar
+  refundAmount decimal
+  restockStatus boolean [default: true]
+
+  createdAt timestamp
+  updatedAt timestamp
+}
+
+Table couponUsages {
+  id varchar [pk]
+
+  couponId varchar [not null, ref: > coupons.id]
+  userId uuid [not null, ref: > users.id]
+  orderId varchar [not null, ref: > orders.id]
+  discountAmount decimal
+
+  usedAt timestamp [default: `now()`]
+}
+
+Table taxRates {
+  id varchar [pk]
+
+  name varchar
+  rate decimal [not null]
+  type varchar
+  countryCode varchar(2) [default: 'IN']
+  stateCode varchar(2)
+  hsnCode varchar(8)
+  isActive boolean [default: true]
+  effectiveFrom timestamp
+  effectiveTo timestamp
+
+  createdAt timestamp
+  updatedAt timestamp
+}
+
+Table shippingRates {
+  id varchar [pk]
+
+  name varchar
+  carrier varchar
+  serviceName varchar
+  baseRate decimal
+  perKgRate decimal
+  freeAboveAmount decimal
+  estimatedDaysMin int
+  estimatedDaysMax int
+  isActive boolean [default: true]
+
+  createdAt timestamp
+  updatedAt timestamp
+}
+
+
+Table codSettings {
+  id uuid [pk]
+
+  isEnabled boolean [default: true]
+
+  minimumOrderAmount decimal
+  maximumOrderAmount decimal
+
+  codCharges decimal
+
+  allowedPincodes jsonb
+  blockedPincodes jsonb
+
+  createdAt timestamp
+  updatedAt timestamp
+}
